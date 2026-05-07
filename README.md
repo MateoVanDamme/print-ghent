@@ -2,6 +2,8 @@
 
 Static web app to crop a watertight, slicer-ready 3D-printable STL of any region of Ghent. Source data is the City of Gent's open "Gent in 3D" dataset (https://data.stad.gent/explore/dataset/gent-in-3d). Sister project to [fly-over-gent](https://fly.mateovandamme.com/), which is the free-flight viewer over the same data.
 
+**Live demo:** https://print-gent.mateovandamme.com/
+
 ## How it works
 
 1. Pick a region on the map (Shift-drag for a square, hold Alt for freeform, or type the corner + width/height).
