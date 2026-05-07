@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Ghent</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        :root { --accent: #DC143C; }
+        html, body {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'SF Mono', Monaco, Inconsolata, 'Fira Code', Consolas, monospace;
+            background: #1a1a1a; color: #ccc;
+        }
+        #app { display: grid; grid-template-columns: 1fr 380px; height: 100%; }
+        #map { height: 100%; }
+        .leaflet-container { background: #1a1a1a; }
+
+        #panel {
+            padding: 18px 20px;
+            overflow-y: auto;
+            background: #111;
+            border-left: 1px solid #333;
+        }
+        #panel h1 {
+            color: var(--accent);
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin: 0 0 0.25rem;
+            letter-spacing: 0.02em;
+        }
+        #panel h2 {
+            color: var(--accent);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 1.5rem 0 0.5rem;
+            font-weight: bold;
+        }
+        #panel p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #ccc;
+            margin: 0.4rem 0;
+        }
+        #panel a { color: var(--accent); text-decoration: none; }
+        #panel a:hover { text-decoration: underline; }
+
+        .row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.25rem 0.75rem;
+            align-items: center;
+            font-size: 0.85rem;
+            padding: 2px 0;
+        }
+        .row .k { color: #888; }
+        .row .v {
+            color: var(--accent);
+            justify-self: end;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            padding: 0.1rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        input[type=number], input[type=checkbox] {
+            justify-self: end;
+            background: #1a1a1a;
+            color: var(--accent);
+            border: 1px solid #444;
+            padding: 0.15rem 0.4rem;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+        input[type=number] { width: 7rem; text-align: right; }
+        input[type=number]:disabled { color: #555; }
+        input[type=checkbox] { accent-color: var(--accent); width: 1rem; height: 1rem; }
+
+        button {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            margin-top: 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: bold;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #ff2050; }
+
+        #status {
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: #888;
+            min-height: 1.1rem;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        #status.error { color: var(--accent); }
+
+        #download {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 0.55rem 0.75rem;
+            background: #1a1a1a;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            text-decoration: none;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        #download:hover { background: var(--accent); color: white; text-decoration: none; }
+
+        .hint { font-size: 0.75rem; color: #888; }
+
+        .draw-hint {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #111;
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .draw-hint kbd {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            padding: 0.05rem 0.4rem;
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="map">
+            <div class="draw-hint"><kbd>Shift</kbd> + drag to select a square — hold <kbd>Alt</kbd> for freeform</div>
+        </div>
+        <aside id="panel">
+            <h1>Print Ghent</h1>
+            <p class="hint">Select a region of Ghent to crop a watertight, slicer-ready STL from the City of Gent open dataset.</p>
+
+            <h2>Selection (Lambert-72)</h2>
+            <div class="row"><span class="k">Top-left X</span><input type="number" id="tl-x" step="1" disabled></div>
+            <div class="row"><span class="k">Top-left Y</span><input type="number" id="tl-y" step="1" disabled></div>
+            <div class="row"><span class="k">Width (m)</span><input type="number" id="size-w" step="1" min="50" disabled></div>
+            <div class="row"><span class="k">Height (m)</span><input type="number" id="size-h" step="1" min="50" disabled></div>
+            <div class="row"><span class="k">Tiles</span><span class="v" id="tile-count">—</span></div>
+
+            <h2>Options</h2>
+            <div class="row"><span class="k">Base height (m)</span><input type="number" id="base-height" value="10" min="0" max="200" step="1"></div>
+            <div class="row"><span class="k">Drop edge buildings</span><input type="checkbox" id="drop-edge" checked></div>
+
+            <button id="generate" disabled>Generate STL</button>
+            <a id="download" href="#" download="">Download STL</a>
+            <div id="status"></div>
+
+            <h2>About</h2>
+            <p>Source data: <a href="https://data.stad.gent/explore/dataset/gent-in-3d/" target="_blank" rel="noopener">City of Gent — Gent in 3D</a> (Modellicentie Gratis Hergebruik Vlaanderen v1.0).</p>
+            <p><a href="https://fly.mateovandamme.com/">← Back to Fly Over Gent</a></p>
+        </aside>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.10.0/proj4.js"></script>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            const hadController = !!navigator.serviceWorker.controller;
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing || !hadController) return;
+                refreshing = true;
+                location.reload();
+            });
+        }
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
