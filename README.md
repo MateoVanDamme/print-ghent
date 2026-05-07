@@ -30,7 +30,14 @@ Any static host. The site is hard-coded to fetch tile STLs from `https://storage
 
 Service worker invalidation: bump `CACHE_NAME` in `sw.js` (e.g. `print-ghent-tiles-v2`) when the upstream STL contents change so existing visitors evict their cached tiles.
 
-### License
-This work is licensed under a
-Creative Commons (4.0 International License)
-Attribution—Noncommercial—Share Alike
+## Data attribution
+
+The 3D city data comes from the City of Gent, made available under the **Modellicentie Gratis Hergebruik Vlaanderen v1.0** (Free Reuse Model License Flanders v1.0).
+
+- **Source:** City of Gent — Gent in 3D — https://data.stad.gent/explore/dataset/gent-in-3d/
+- **License:** https://www.vlaanderen.be/digitaal-vlaanderen/onze-diensten-en-platformen/open-data/voorwaarden-voor-het-hergebruik-van-overheidsinformatie/modellicentie-gratis-hergebruik
+
+Contains government information obtained under the free reuse model license Flanders v1.0.
+
+## License
+This project is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0).
